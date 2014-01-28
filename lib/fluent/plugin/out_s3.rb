@@ -35,6 +35,7 @@ class S3Output < Fluent::TimeSlicedOutput
   config_param :check_apikey_on_start, :bool, :default => true
   config_param :proxy_uri, :string, :default => nil
   config_param :reduced_redundancy, :bool, :default => false
+  config_param :format, :string, :default => 'raw' # raw|json|tagged
 
   attr_reader :bucket
 
@@ -46,12 +47,6 @@ class S3Output < Fluent::TimeSlicedOutput
 
   def configure(conf)
     super
-
-    if format_json = conf['format_json']
-      @format_json = true
-    else
-      @format_json = false
-    end
 
     if use_ssl = conf['use_ssl']
       if use_ssl.empty?
@@ -110,7 +105,7 @@ class S3Output < Fluent::TimeSlicedOutput
   end
 
   def format(tag, time, record)
-    if @include_time_key || !@format_json
+    if @include_time_key || @format == 'tagged'
       time_str = @timef.format(time)
     end
 
@@ -122,10 +117,15 @@ class S3Output < Fluent::TimeSlicedOutput
       record[@time_key] = time_str
     end
 
-    if @format_json
+    case @format
+    when 'json'
       Yajl.dump(record) + "\n"
-    else
+    when 'raw'
+      record.to_s + "\n"
+    when 'tagged'
       "#{time_str}\t#{tag}\t#{Yajl.dump(record)}\n"
+    else
+      raise "Unexpected Format: #{@format}"
     end
   end
 
