@@ -121,7 +121,7 @@ class S3Output < Fluent::TimeSlicedOutput
     when 'json'
       Yajl.dump(record) + "\n"
     when 'raw'
-      record.to_s + "\n"
+      record["message"].to_s + "\n"
     when 'tagged'
       "#{time_str}\t#{tag}\t#{Yajl.dump(record)}\n"
     else
