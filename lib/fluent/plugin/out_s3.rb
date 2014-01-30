@@ -36,8 +36,10 @@ class S3Output < Fluent::TimeSlicedOutput
   config_param :check_apikey_on_start, :bool, :default => true
   config_param :proxy_uri, :string, :default => nil
   config_param :reduced_redundancy, :bool, :default => false
+
   config_param :format, :string, :default => 'raw' # raw|json|tagged
   config_param :header, :string, :default => nil # header to each file
+  config_param :file_extension, :string, :default => ".log"
 
   attr_reader :bucket
 
@@ -133,7 +135,6 @@ class S3Output < Fluent::TimeSlicedOutput
   end
 
   def write(chunk)
-    p "Write started"
     i = 0
 
     begin
@@ -159,7 +160,8 @@ class S3Output < Fluent::TimeSlicedOutput
         w.close
       when 'zip'
         zip = Zip::ZipOutputStream.open(tmp)
-        zip.put_next_entry chunk.key
+        filename = chunk.key.split('/').last
+        zip.put_next_entry filename + @file_extension
 
         ## add header for csv archive if exists
         if @header != nil
