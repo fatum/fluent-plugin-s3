@@ -12,6 +12,7 @@ class S3Output < Fluent::TimeSlicedOutput
     require 'time'
     require 'tempfile'
     require 'open3'
+    require 'zip/zip'
 
     @use_ssl = true
   end
@@ -36,6 +37,7 @@ class S3Output < Fluent::TimeSlicedOutput
   config_param :proxy_uri, :string, :default => nil
   config_param :reduced_redundancy, :bool, :default => false
   config_param :format, :string, :default => 'raw' # raw|json|tagged
+  config_param :header, :string, :default => nil # header to each file
 
   attr_reader :bucket
 
@@ -61,6 +63,7 @@ class S3Output < Fluent::TimeSlicedOutput
 
     @ext, @mime_type = case @store_as
       when 'gzip' then ['gz', 'application/x-gzip']
+      when 'zip' then ['zip', 'application/zip']
       when 'lzo' then
         begin
           Open3.capture3('lzop -V')
@@ -130,6 +133,7 @@ class S3Output < Fluent::TimeSlicedOutput
   end
 
   def write(chunk)
+    p "Write started"
     i = 0
 
     begin
@@ -148,11 +152,23 @@ class S3Output < Fluent::TimeSlicedOutput
 
     tmp = Tempfile.new("s3-")
     begin
-      if @store_as == "gzip"
+      case @store_as
+      when "gzip"
         w = Zlib::GzipWriter.new(tmp)
         chunk.write_to(w)
         w.close
-      elsif @store_as == "lzo"
+      when 'zip'
+        zip = Zip::ZipOutputStream.open(tmp)
+        zip.put_next_entry chunk.key
+
+        ## add header for csv archive if exists
+        if @header != nil
+          zip.puts @header
+        end
+
+        chunk.write_to(zip)
+        zip.close
+      when "lzo"
         w = Tempfile.new("chunk-tmp")
         chunk.write_to(w)
         w.close
