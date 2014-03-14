@@ -18,7 +18,7 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency "rubyzip", "0.9.9"
   gem.add_dependency "fluentd", "~> 0.10.0"
-  gem.add_dependency "aws-sdk", "~> 1.9.5"
+  gem.add_dependency "aws-sdk", "~> 1.36.1"
   gem.add_dependency "yajl-ruby", "~> 1.0"
   gem.add_dependency "fluent-mixin-config-placeholders", "~> 0.2.0"
   gem.add_development_dependency "rake", ">= 0.9.2"
